@@ -10,6 +10,14 @@ class FileTransfer {
   constructor() {
   }
 
+  static getRealPathFromUri(uri, callback) {
+    NativeModules.FileTransfer.getRealPathFromUri(uri, callback);
+  }
+
+  static show(message) {
+    NativeModules.FileTransfer.show(message);
+  }
+
   static upload(opts, callback) {
     NativeModules.FileTransfer.upload(opts, callback);
   }
