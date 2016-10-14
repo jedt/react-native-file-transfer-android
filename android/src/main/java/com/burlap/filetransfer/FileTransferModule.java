@@ -34,6 +34,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.FileNotFoundException;
 import java.util.HashMap;
+import java.util.concurrent.TimeUnit;
 
 
 public class FileTransferModule extends ReactContextBaseJavaModule {
@@ -68,23 +69,33 @@ public class FileTransferModule extends ReactContextBaseJavaModule {
     final Callback completeCallback = complete;
     Uri contentUri = Uri.parse(uri);
 
-    String result = "";
-    String documentID;
-
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.KITKAT) {
-      String[] pathParts = contentUri.getPath().split("/");
-      documentID = pathParts[pathParts.length - 1];
-    } else {
-      String pathSegments[] = contentUri.getLastPathSegment().split(":");
-      documentID = pathSegments[pathSegments.length - 1];
+    if (contentUri.getScheme().toString().compareTo("file")==0) {
+      completeCallback.invoke(uri);
     }
-    String mediaPath = MediaStore.Images.Media.DATA;
-    Cursor imageCursor = mContext.getContentResolver().query(contentUri, new String[]{mediaPath}, MediaStore.Images.Media._ID + "=" + documentID, null, null);
-    if (imageCursor.moveToFirst()) {
-      result = imageCursor.getString(imageCursor.getColumnIndex(mediaPath));
-    }
+    else {
+      String result = "";
+      String documentID;
 
-    completeCallback.invoke(result);
+      Log.d(TAG, "contentUri.getPath() " + contentUri.getPath());
+      Log.d(TAG, "Build.VERSION.SDK_INT " + Build.VERSION.SDK_INT);
+      Log.d(TAG, "Build.VERSION_CODES.KITKAT " + Build.VERSION_CODES.KITKAT);
+      Log.d(TAG, "contentUri.getScheme().toString() " + contentUri.getScheme().toString());
+
+      if (Build.VERSION.SDK_INT < Build.VERSION_CODES.KITKAT) {
+        String[] pathParts = contentUri.getPath().split("/");
+        documentID = pathParts[pathParts.length - 1];
+      } else {
+        String pathSegments[] = contentUri.getLastPathSegment().split(":");
+        documentID = pathSegments[pathSegments.length - 1];
+      }
+      String mediaPath = MediaStore.Images.Media.DATA;
+      Cursor imageCursor = mContext.getContentResolver().query(contentUri, new String[]{mediaPath}, MediaStore.Images.Media._ID + "=" + documentID, null, null);
+      if (imageCursor.moveToFirst()) {
+        result = imageCursor.getString(imageCursor.getColumnIndex(mediaPath));
+      }
+
+      completeCallback.invoke(result);
+    }
   }
 
   @ReactMethod
@@ -133,6 +144,9 @@ public class FileTransferModule extends ReactContextBaseJavaModule {
                 .url(url)
                 .post(requestBody)
                 .build();
+
+        client.setConnectTimeout(300, TimeUnit.SECONDS); // connect timeout
+        client.setReadTimeout(300, TimeUnit.SECONDS);    // socket timeout
 
         Response response = client.newCall(request).execute();
         if (!response.isSuccessful()) {
